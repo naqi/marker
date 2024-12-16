@@ -22,6 +22,10 @@ import json
 
 configure_logging()
 
+def __init__(self):
+    self.pdf_mimetypes = ['application/pdf']
+    self.pdf_extensions = ['.pdf', '.PDF']
+
 
 def worker_init(shared_model):
     if shared_model is None:
@@ -68,12 +72,12 @@ def process_single_pdf(args):
 
 def main():
     parser = argparse.ArgumentParser(description="Convert multiple pdfs to markdown.")
-    parser.add_argument("in_folder", help="Input folder with pdfs.")
-    parser.add_argument("out_folder", help="Output folder")
+    parser.add_argument("in_folder", default="./30-accounts-details/docs", help="Input folder with pdfs.")
+    parser.add_argument("out_folder", default="./output", help="Output folder")
     parser.add_argument("--chunk_idx", type=int, default=0, help="Chunk index to convert")
     parser.add_argument("--num_chunks", type=int, default=1, help="Number of chunks being processed in parallel")
     parser.add_argument("--max", type=int, default=None, help="Maximum number of pdfs to convert")
-    parser.add_argument("--workers", type=int, default=5, help="Number of worker processes to use.  Peak VRAM usage per process is 5GB, but avg is closer to 3.5GB.")
+    parser.add_argument("--workers", type=int, default=8, help="Number of worker processes to use.  Peak VRAM usage per process is 5GB, but avg is closer to 3.5GB.")
     parser.add_argument("--metadata_file", type=str, default=None, help="Metadata json file to use for languages")
     parser.add_argument("--min_length", type=int, default=None, help="Minimum length of pdf to convert")
 
@@ -81,8 +85,12 @@ def main():
 
     in_folder = os.path.abspath(args.in_folder)
     out_folder = os.path.abspath(args.out_folder)
-    files = [os.path.join(in_folder, f) for f in os.listdir(in_folder)]
-    files = [f for f in files if os.path.isfile(f)]
+    files = [
+        os.path.join(root, file)
+        for root, _, files in os.walk(in_folder)
+        for file in files
+    ]
+    files = [f for f in files if os.path.isfile(f) and f.lower().endswith(".pdf")]
     os.makedirs(out_folder, exist_ok=True)
 
     # Handle chunks if we're processing in parallel
